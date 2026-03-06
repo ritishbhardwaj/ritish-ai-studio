@@ -1,11 +1,14 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Mail, MapPin, Send } from "lucide-react";
+import { Mail, MapPin, Send, Loader2 } from "lucide-react";
+import emailjs from "@emailjs/browser";
+import { toast } from "sonner";
 
 const ContactSection = () => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [sending, setSending] = useState(false);
 
   return (
     <section id="contact" className="section-padding bg-secondary/30">
@@ -83,7 +86,27 @@ const ContactSection = () => {
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.25 }}
             className="md:col-span-3 glass-card p-6 space-y-4"
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+                toast.error("Please fill in all fields.");
+                return;
+              }
+              setSending(true);
+              emailjs
+                .send(
+                  "service_6el0qko",
+                  "template_p31k6ld",
+                  { from_name: form.name, from_email: form.email, message: form.message },
+                  "bWjOtW8Dif_VNIlOW"
+                )
+                .then(() => {
+                  toast.success("Message sent successfully!");
+                  setForm({ name: "", email: "", message: "" });
+                })
+                .catch(() => toast.error("Failed to send message. Please try again."))
+                .finally(() => setSending(false));
+            }}
           >
             <div className="grid sm:grid-cols-2 gap-4">
               <input
@@ -110,10 +133,11 @@ const ContactSection = () => {
             />
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-foreground text-background rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+              disabled={sending}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-foreground text-background rounded-full text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Send Message
-              <Send size={14} />
+              {sending ? "Sending..." : "Send Message"}
+              {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
           </motion.form>
         </div>
